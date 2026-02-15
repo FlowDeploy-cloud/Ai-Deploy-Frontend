@@ -12,14 +12,14 @@ const Hero = () => {
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full bg-primary/5 blur-[120px]" />
       </div>
 
-      <div className="container mx-auto px-6 pt-32 pb-20 relative z-10">
+      <div className="container mx-auto px-4 sm:px-6 pt-24 sm:pt-32 pb-12 sm:pb-20 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           {/* Tag */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.6 }}
-            className="inline-flex items-center gap-2 glass px-4 py-1.5 rounded-full mb-8"
+            className="inline-flex items-center gap-2 glass px-3 sm:px-4 py-1.5 rounded-full mb-6 sm:mb-8"
           >
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse-glow" />
             <span className="font-body text-xs text-muted-foreground tracking-wide uppercase">
@@ -32,7 +32,7 @@ const Hero = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.7 }}
-            className="font-heading text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.95] mb-6"
+            className="font-heading text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.95] mb-4 sm:mb-6"
           >
             Ship Code,
             <br />
@@ -44,7 +44,7 @@ const Hero = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.6 }}
-            className="font-body text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
+            className="font-body text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-4"
           >
             Drop your GitHub repo links, add your environment variables, and we handle the rest.
             Automatic builds, SSL, and deployments to your own VPS.
@@ -58,18 +58,18 @@ const Hero = () => {
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <Link
-              to="/dashboard"
+              to="/signup"
               className="group flex items-center gap-2 bg-primary text-primary-foreground px-8 py-3.5 rounded-lg font-body font-medium text-sm hover:opacity-90 transition-all"
             >
-              Deploy Your First Project
+              Get Started Free
               <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </Link>
-            <a
-              href="#how-it-works"
+            <Link
+              to="/login"
               className="flex items-center gap-2 border border-border px-8 py-3.5 rounded-lg font-body text-sm text-muted-foreground hover:text-foreground hover:border-muted-foreground/30 transition-all"
             >
-              See How it Works
-            </a>
+              Log In
+            </Link>
           </motion.div>
         </div>
 
@@ -78,14 +78,14 @@ const Hero = () => {
           initial={{ opacity: 0, y: 60, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ delay: 0.8, duration: 0.9, ease: "easeOut" }}
-          className="mt-20 max-w-5xl mx-auto"
+          className="mt-12 sm:mt-16 md:mt-20 max-w-5xl mx-auto px-4"
         >
-          <div className="relative rounded-xl overflow-hidden border border-border glow-card">
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/50">
-              <div className="w-3 h-3 rounded-full bg-destructive/60" />
-              <div className="w-3 h-3 rounded-full bg-primary/30" />
-              <div className="w-3 h-3 rounded-full bg-primary/60" />
-              <span className="ml-3 font-body text-xs text-muted-foreground">deployflow.dev/dashboard</span>
+          <div className="relative rounded-lg sm:rounded-xl overflow-hidden border border-border glow-card">
+            <div className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-3 border-b border-border bg-muted/50">
+              <div className="w-2 sm:w-3 h-2 sm:h-3 rounded-full bg-destructive/60" />
+              <div className="w-2 sm:w-3 h-2 sm:h-3 rounded-full bg-primary/30" />
+              <div className="w-2 sm:w-3 h-2 sm:h-3 rounded-full bg-primary/60" />
+              <span className="ml-2 sm:ml-3 font-body text-[10px] sm:text-xs text-muted-foreground truncate">deployflow.dev/dashboard</span>
             </div>
             <img
               src={dashboardPreview}

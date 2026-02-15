@@ -28,8 +28,8 @@ const Navbar = () => {
         scrolled ? "glass" : "bg-transparent"
       }`}
     >
-      <div className="container mx-auto flex items-center justify-between py-4 px-6">
-        <a href="#" className="font-heading text-xl font-bold tracking-tight text-foreground">
+      <div className="container mx-auto flex items-center justify-between py-3 sm:py-4 px-4 sm:px-6">
+        <a href="#" className="font-heading text-lg sm:text-xl font-bold tracking-tight text-foreground">
           deploy<span className="gradient-text">flow</span>
         </a>
 
@@ -46,17 +46,17 @@ const Navbar = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <a
-            href="#"
+          <Link
+            to="/login"
             className="font-body text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2"
           >
             Log in
-          </a>
+          </Link>
           <Link
-            to="/dashboard"
+            to="/signup"
             className="font-body text-sm bg-primary text-primary-foreground px-5 py-2.5 rounded-lg hover:opacity-90 transition-opacity font-medium"
           >
-            Start Deploying
+            Get Started
           </Link>
         </div>
 
@@ -87,12 +87,22 @@ const Navbar = () => {
                   {link.label}
                 </a>
               ))}
-              <a
-                href="#"
-                className="font-body text-sm bg-primary text-primary-foreground px-5 py-2.5 rounded-lg text-center font-medium"
-              >
-                Start Deploying
-              </a>
+              <div className="flex flex-col gap-2 mt-2">
+                <Link
+                  to="/login"
+                  className="font-body text-sm text-center border border-border px-5 py-2.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Log in
+                </Link>
+                <Link
+                  to="/signup"
+                  className="font-body text-sm bg-primary text-primary-foreground px-5 py-2.5 rounded-lg text-center font-medium"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Get Started
+                </Link>
+              </div>
             </div>
           </motion.div>
         )}

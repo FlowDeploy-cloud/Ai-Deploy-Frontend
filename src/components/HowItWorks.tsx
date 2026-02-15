@@ -27,26 +27,26 @@ const steps = [
 
 const HowItWorks = () => {
   return (
-    <section id="how-it-works" className="py-32 relative">
+    <section id="how-it-works" className="py-20 sm:py-28 md:py-32 relative">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-border to-transparent" />
       </div>
 
-      <div className="container mx-auto px-6">
+      <div className="container mx-auto px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-20"
+          className="text-center mb-12 sm:mb-16 md:mb-20"
         >
           <span className="font-body text-xs text-primary tracking-widest uppercase">Process</span>
-          <h2 className="font-heading text-4xl md:text-5xl font-bold mt-3">
+          <h2 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold mt-2 sm:mt-3">
             Three Steps to Production
           </h2>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-6 sm:gap-8 max-w-5xl mx-auto">
           {steps.map((step, i) => (
             <motion.div
               key={step.step}
@@ -56,14 +56,14 @@ const HowItWorks = () => {
               transition={{ delay: i * 0.15, duration: 0.6 }}
               className="relative group"
             >
-              <div className="glow-card rounded-xl p-8 h-full transition-all duration-500 border border-border">
-                <span className="font-heading text-5xl font-bold text-muted/80 block mb-6">
+              <div className="glow-card rounded-lg sm:rounded-xl p-6 sm:p-8 h-full transition-all duration-500 border border-border">
+                <span className="font-heading text-4xl sm:text-5xl font-bold text-muted/80 block mb-5 sm:mb-6">
                   {step.step}
                 </span>
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                  <step.icon size={20} className="text-primary" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
+                  <step.icon size={18} className="text-primary sm:w-5 sm:h-5" />
                 </div>
-                <h3 className="font-heading text-xl font-semibold mb-3">{step.title}</h3>
+                <h3 className="font-heading text-lg sm:text-xl font-semibold mb-2 sm:mb-3">{step.title}</h3>
                 <p className="font-body text-sm text-muted-foreground leading-relaxed">
                   {step.description}
                 </p>
@@ -82,16 +82,16 @@ const HowItWorks = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
           transition={{ delay: 0.3, duration: 0.7 }}
-          className="mt-20 max-w-3xl mx-auto"
+          className="mt-12 sm:mt-16 md:mt-20 max-w-3xl mx-auto"
         >
-          <div className="rounded-xl border border-border bg-card overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-              <div className="w-3 h-3 rounded-full bg-destructive/60" />
-              <div className="w-3 h-3 rounded-full bg-primary/30" />
-              <div className="w-3 h-3 rounded-full bg-primary/60" />
-              <span className="ml-3 font-body text-xs text-muted-foreground">terminal</span>
+          <div className="rounded-lg sm:rounded-xl border border-border bg-card overflow-hidden">
+            <div className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-3 border-b border-border">
+              <div className="w-2 sm:w-3 h-2 sm:h-3 rounded-full bg-destructive/60" />
+              <div className="w-2 sm:w-3 h-2 sm:h-3 rounded-full bg-primary/30" />
+              <div className="w-2 sm:w-3 h-2 sm:h-3 rounded-full bg-primary/60" />
+              <span className="ml-2 sm:ml-3 font-body text-[10px] sm:text-xs text-muted-foreground">terminal</span>
             </div>
-            <div className="p-6 font-mono text-sm space-y-2">
+            <div className="p-4 sm:p-6 font-mono text-xs sm:text-sm space-y-1.5 sm:space-y-2 overflow-x-auto">
               <p className="text-muted-foreground">
                 <span className="text-primary">$</span> deployflow deploy --repo https://github.com/user/app
               </p>
