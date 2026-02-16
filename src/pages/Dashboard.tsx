@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Trash2, Eye, EyeOff, Rocket, GitBranch, Server, Settings, Loader2, CheckCircle2, LogOut, User, Play, Square, RotateCw, ExternalLink, Globe, Activity, List, Terminal, FileUp, Menu, X, CreditCard, ArrowRight, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { deploymentApi, connectWebSocket, getToken, subscriptionApi } from "@/lib/api";
+import { deploymentApi, connectWebSocket, getToken, subscriptionApi, authApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -67,6 +67,12 @@ const Dashboard = () => {
   const [warnings, setWarnings] = useState<any>(null);
   const [loadingWarnings, setLoadingWarnings] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // GitHub repositories state
+  const [githubRepos, setGithubRepos] = useState<any[]>([]);
+  const [loadingRepos, setLoadingRepos] = useState(false);
+  const [showRepoSelector, setShowRepoSelector] = useState(false);
+  const [repoSearchTerm, setRepoSearchTerm] = useState("");
 
   // Redirect if not authenticated (after loading completes)
   useEffect(() => {
@@ -130,6 +136,31 @@ const Dashboard = () => {
       return () => clearInterval(interval);
     }
   }, [isAuthenticated, toast]);
+
+  // Fetch GitHub repositories
+  useEffect(() => {
+    const fetchGithubRepos = async () => {
+      if (!isAuthenticated || !user) return;
+      
+      // Only fetch if user has GitHub auth
+      if (user.github_username || user.auth_provider === 'github') {
+        try {
+          setLoadingRepos(true);
+          const response = await authApi.getGithubRepos();
+          
+          if (response.success && response.data?.repositories) {
+            setGithubRepos(response.data.repositories);
+          }
+        } catch (error) {
+          console.error('Failed to fetch GitHub repositories:', error);
+        } finally {
+          setLoadingRepos(false);
+        }
+      }
+    };
+
+    fetchGithubRepos();
+  }, [isAuthenticated, user]);
 
   // Cleanup WebSocket on unmount
   useEffect(() => {
@@ -1117,29 +1148,145 @@ const Dashboard = () => {
                               className="w-full bg-muted border border-border rounded-lg px-4 py-2.5 font-body text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
                             />
                           </div>
+
+                          {/* GitHub Repositories Section */}
+                          {user?.github_username && githubRepos.length > 0 && (
+                            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
+                              <div className="flex items-center gap-2">
+                                <GitBranch className="w-4 h-4 text-primary" />
+                                <span className="font-body text-sm font-medium">Your GitHub Repositories</span>
+                                <span className="text-xs text-muted-foreground">({githubRepos.length} public repos)</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Select from your repositories or enter URL manually below
+                              </p>
+                              
+                              {/* Repository Search */}
+                              <div>
+                                <input
+                                  type="text"
+                                  placeholder="Search repositories..."
+                                  value={repoSearchTerm}
+                                  onChange={(e) => setRepoSearchTerm(e.target.value)}
+                                  className="w-full bg-background border border-border rounded-lg px-3 py-2 font-body text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all mb-2"
+                                />
+                              </div>
+
+                              {/* Repository List */}
+                              <div className="max-h-48 overflow-y-auto space-y-1 custom-scrollbar">
+                                {githubRepos
+                                  .filter(repo => 
+                                    repoSearchTerm === "" || 
+                                    repo.name.toLowerCase().includes(repoSearchTerm.toLowerCase()) ||
+                                    repo.description?.toLowerCase().includes(repoSearchTerm.toLowerCase())
+                                  )
+                                  .map((repo: any) => (
+                                    <button
+                                      key={repo.id}
+                                      type="button"
+                                      onClick={() => {
+                                        if (!frontendRepo) {
+                                          setFrontendRepo(repo.clone_url);
+                                        } else if (!backendRepo) {
+                                          setBackendRepo(repo.clone_url);
+                                        }
+                                        toast({
+                                          title: "Repository Selected",
+                                          description: `${repo.name} added to ${!frontendRepo ? 'frontend' : 'backend'}`
+                                        });
+                                      }}
+                                      className="w-full text-left p-3 rounded-lg bg-background hover:bg-muted border border-border hover:border-primary/30 transition-all group"
+                                    >
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="flex-1 min-w-0">
+                                          <div className="font-body text-xs font-medium text-foreground group-hover:text-primary transition-colors truncate">
+                                            {repo.name}
+                                          </div>
+                                          {repo.description && (
+                                            <div className="font-body text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                                              {repo.description}
+                                            </div>
+                                          )}
+                                          <div className="flex items-center gap-3 mt-1">
+                                            {repo.language && (
+                                              <span className="text-xs text-muted-foreground">
+                                                {repo.language}
+                                              </span>
+                                            )}
+                                            <span className="text-xs text-muted-foreground">
+                                              ⭐ {repo.stargazers_count}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+                                      </div>
+                                    </button>
+                                  ))}
+                                {githubRepos.filter(repo => 
+                                  repoSearchTerm === "" || 
+                                  repo.name.toLowerCase().includes(repoSearchTerm.toLowerCase()) ||
+                                  repo.description?.toLowerCase().includes(repoSearchTerm.toLowerCase())
+                                ).length === 0 && (
+                                  <div className="text-center py-4 text-xs text-muted-foreground">
+                                    No repositories found
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="border-t border-border/50 pt-3 mt-3">
+                                <p className="text-xs text-muted-foreground italic">
+                                  💡 Private repositories coming soon!
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Manual Repository Input */}
                           <div>
                             <label className="font-body text-xs text-muted-foreground mb-1.5 block">
                               Frontend Repository <span className="text-muted-foreground/40">(optional)</span>
                             </label>
-                            <input
-                              type="url"
-                              placeholder="https://github.com/username/frontend-repo"
-                              value={frontendRepo}
-                              onChange={(e) => setFrontendRepo(e.target.value)}
-                              className="w-full bg-muted border border-border rounded-lg px-4 py-2.5 font-body text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
-                            />
+                            <div className="relative">
+                              <input
+                                type="url"
+                                placeholder="https://github.com/username/frontend-repo"
+                                value={frontendRepo}
+                                onChange={(e) => setFrontendRepo(e.target.value)}
+                                className="w-full bg-muted border border-border rounded-lg px-4 py-2.5 font-body text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
+                              />
+                              {frontendRepo && (
+                                <button
+                                  type="button"
+                                  onClick={() => setFrontendRepo("")}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-destructive transition-colors"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                           <div>
                             <label className="font-body text-xs text-muted-foreground mb-1.5 block">
                               Backend Repository <span className="text-muted-foreground/40">(optional)</span>
                             </label>
-                            <input
-                              type="url"
-                              placeholder="https://github.com/username/backend-repo"
-                              value={backendRepo}
-                              onChange={(e) => setBackendRepo(e.target.value)}
-                              className="w-full bg-muted border border-border rounded-lg px-4 py-2.5 font-body text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
-                            />
+                            <div className="relative">
+                              <input
+                                type="url"
+                                placeholder="https://github.com/username/backend-repo"
+                                value={backendRepo}
+                                onChange={(e) => setBackendRepo(e.target.value)}
+                                className="w-full bg-muted border border-border rounded-lg px-4 py-2.5 font-body text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
+                              />
+                              {backendRepo && (
+                                <button
+                                  type="button"
+                                  onClick={() => setBackendRepo("")}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-destructive transition-colors"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>

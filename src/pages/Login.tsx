@@ -1,21 +1,25 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Loader2, Github } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { authApi, setToken, setUser } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGithubLoading, setIsGithubLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -48,6 +52,36 @@ const Login = () => {
     }
   };
 
+  const handleGithubLogin = async () => {
+    try {
+      setIsGithubLoading(true);
+      
+      // Get the GitHub authorization URL
+      const response = await authApi.getGithubAuthUrl();
+      
+      if (response.success && response.data) {
+        // Redirect to GitHub OAuth
+        const data = response.data as { url: string };
+        window.location.href = data.url;
+      } else {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to initiate GitHub login",
+          variant: "destructive",
+        });
+        setIsGithubLoading(false);
+      }
+    } catch (error) {
+      console.error('GitHub login error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to connect to GitHub",
+        variant: "destructive",
+      });
+      setIsGithubLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background hero-grid flex items-center justify-center p-4">
       <motion.div
@@ -70,8 +104,46 @@ const Login = () => {
             <CardTitle>Log In</CardTitle>
             <CardDescription>Access your deployments dashboard</CardDescription>
           </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
+          
+          <CardContent className="space-y-6">
+            {/* GitHub Login - Primary option */}
+            <div className="space-y-3">
+              <Button
+                type="button"
+                variant="default"
+                className="w-full h-12 text-base font-medium"
+                onClick={handleGithubLogin}
+                disabled={isGithubLoading}
+              >
+                {isGithubLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Connecting to GitHub...
+                  </>
+                ) : (
+                  <>
+                    <Github className="mr-2 h-5 w-5" />
+                    Continue with GitHub
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-center text-muted-foreground">
+                Automatically imports your repositories and GitHub username
+              </p>
+            </div>
+
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border"></div>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or continue with email</span>
+              </div>
+            </div>
+
+            {/* Email/Password Login - Alternative option */}
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
@@ -83,7 +155,7 @@ const Login = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
-                    disabled={isLoading}
+                    disabled={isLoading || isGithubLoading}
                   />
                 </div>
                 {errors.email && (
@@ -102,17 +174,15 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
-                    disabled={isLoading}
+                    disabled={isLoading || isGithubLoading}
                   />
                 </div>
                 {errors.password && (
                   <p className="text-sm text-destructive">{errors.password}</p>
                 )}
               </div>
-            </CardContent>
 
-            <CardFooter className="flex flex-col space-y-4">
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full" disabled={isLoading || isGithubLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -125,22 +195,18 @@ const Login = () => {
                   </>
                 )}
               </Button>
+            </form>
+          </CardContent>
 
-              <p className="text-sm text-center text-muted-foreground">
-                Don't have an account?{' '}
-                <Link to="/signup" className="text-primary hover:underline">
-                  Sign up
-                </Link>
-              </p>
-            </CardFooter>
-          </form>
+          <CardFooter className="flex flex-col">
+            <p className="text-sm text-center text-muted-foreground">
+              Don't have an account?{' '}
+              <Link to="/signup" className="text-primary hover:underline">
+                Sign up
+              </Link>
+            </p>
+          </CardFooter>
         </Card>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            Demo: admin@clawdeploy.com / Admin@123456
-          </p>
-        </div>
       </motion.div>
     </div>
   );

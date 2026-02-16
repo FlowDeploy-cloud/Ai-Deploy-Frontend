@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Loader2, Github } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { authApi } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 const Signup = () => {
   const [username, setUsername] = useState('');
@@ -14,10 +16,12 @@ const Signup = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGithubLoading, setIsGithubLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { signup } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -72,6 +76,35 @@ const Signup = () => {
     }
   };
 
+  const handleGithubSignup = async () => {
+    try {
+      setIsGithubLoading(true);
+      
+      // Get the GitHub authorization URL
+      const response = await authApi.getGithubAuthUrl();
+      
+      if (response.success && response.data?.url) {
+        // Redirect to GitHub OAuth
+        window.location.href = response.data.url;
+      } else {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to initiate GitHub signup",
+          variant: "destructive",
+        });
+        setIsGithubLoading(false);
+      }
+    } catch (error) {
+      console.error('GitHub signup error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to connect to GitHub",
+        variant: "destructive",
+      });
+      setIsGithubLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background hero-grid flex items-center justify-center p-4">
       <motion.div
@@ -94,8 +127,46 @@ const Signup = () => {
             <CardTitle>Sign Up</CardTitle>
             <CardDescription>Start deploying your projects in minutes</CardDescription>
           </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
+          
+          <CardContent className="space-y-6">
+            {/* GitHub Signup - Primary option */}
+            <div className="space-y-3">
+              <Button
+                type="button"
+                variant="default"
+                className="w-full h-12 text-base font-medium"
+                onClick={handleGithubSignup}
+                disabled={isGithubLoading}
+              >
+                {isGithubLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Connecting to GitHub...
+                  </>
+                ) : (
+                  <>
+                    <Github className="mr-2 h-5 w-5" />
+                    Sign up with GitHub
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-center text-muted-foreground">
+                Automatically imports your repositories and GitHub username
+              </p>
+            </div>
+
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border"></div>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or continue with email</span>
+              </div>
+            </div>
+
+            {/* Email/Password Signup - Alternative option */}
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <div className="relative">
@@ -107,7 +178,7 @@ const Signup = () => {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="pl-10"
-                    disabled={isLoading}
+                    disabled={isLoading || isGithubLoading}
                   />
                 </div>
                 {errors.username ? (
@@ -130,7 +201,7 @@ const Signup = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
-                    disabled={isLoading}
+                    disabled={isLoading || isGithubLoading}
                   />
                 </div>
                 {errors.email && (
@@ -149,7 +220,7 @@ const Signup = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
-                    disabled={isLoading}
+                    disabled={isLoading || isGithubLoading}
                   />
                 </div>
                 {errors.password ? (
@@ -172,17 +243,15 @@ const Signup = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10"
-                    disabled={isLoading}
+                    disabled={isLoading || isGithubLoading}
                   />
                 </div>
                 {errors.confirmPassword && (
                   <p className="text-sm text-destructive">{errors.confirmPassword}</p>
                 )}
               </div>
-            </CardContent>
 
-            <CardFooter className="flex flex-col space-y-4">
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full" disabled={isLoading || isGithubLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -195,15 +264,17 @@ const Signup = () => {
                   </>
                 )}
               </Button>
+            </form>
+          </CardContent>
 
-              <p className="text-sm text-center text-muted-foreground">
-                Already have an account?{' '}
-                <Link to="/login" className="text-primary hover:underline">
-                  Log in
-                </Link>
-              </p>
-            </CardFooter>
-          </form>
+          <CardFooter className="flex flex-col">
+            <p className="text-sm text-center text-muted-foreground">
+              Already have an account?{' '}
+              <Link to="/login" className="text-primary hover:underline">
+                Log in
+              </Link>
+            </p>
+          </CardFooter>
         </Card>
       </motion.div>
     </div>

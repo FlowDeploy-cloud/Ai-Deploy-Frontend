@@ -32,6 +32,10 @@ interface User {
   max_deployments: number;
   api_key: string;
   createdAt?: string;
+  github_username?: string;
+  github_id?: string;
+  avatar_url?: string;
+  auth_provider?: 'local' | 'github';
 }
 
 // Get stored user
@@ -136,6 +140,29 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  },
+
+  // GitHub OAuth - Get authorization URL
+  getGithubAuthUrl: async () => {
+    return apiFetch('/auth/github/url');
+  },
+
+  // GitHub OAuth - Handle callback
+  githubCallback: async (code: string) => {
+    return apiFetch('/auth/github/callback', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+  },
+
+  // Get GitHub repositories
+  getGithubRepos: async () => {
+    return apiFetch('/auth/github/repos');
+  },
+
+  // Get GitHub repository details
+  getGithubRepoDetails: async (owner: string, repo: string) => {
+    return apiFetch(`/auth/github/repos/${owner}/${repo}`);
   },
 };
 

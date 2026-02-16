@@ -10,6 +10,10 @@ interface User {
   max_deployments: number;
   api_key: string;
   createdAt?: string;
+  github_username?: string;
+  github_id?: string;
+  avatar_url?: string;
+  auth_provider?: 'local' | 'github';
 }
 
 interface AuthContextType {
@@ -20,6 +24,8 @@ interface AuthContextType {
   signup: (username: string, email: string, password: string, plan?: string) => Promise<boolean>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  setUser: (user: User | null) => void;
+  setIsAuthenticated: (authenticated: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -166,6 +172,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signup,
         logout,
         refreshUser,
+        setUser,
+        setIsAuthenticated: (authenticated: boolean) => {
+          if (!authenticated) {
+            setUser(null);
+          }
+        },
       }}
     >
       {children}

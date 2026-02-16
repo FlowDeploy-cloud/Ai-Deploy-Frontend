@@ -11,6 +11,7 @@ const Index = lazy(() => import("./pages/Index"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
+const GithubCallback = lazy(() => import("./pages/GithubCallback"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 const DocsPage = lazy(() => import("./pages/DocsPage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/auth/github/callback" element={<GithubCallback />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/docs" element={<DocsPage />} />
