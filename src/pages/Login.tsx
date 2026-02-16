@@ -58,7 +58,7 @@ const Login = () => {
       >
         <div className="text-center mb-6 sm:mb-8">
           <Link to="/" className="inline-block">
-            <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-2">
+            <h1 className="font-heading text-xl sm:text-2xl font-bold mb-2">
               deploy<span className="gradient-text">flow</span>
             </h1>
           </Link>

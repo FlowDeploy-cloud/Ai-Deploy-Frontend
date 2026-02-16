@@ -665,7 +665,7 @@ const Dashboard = () => {
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
-            <span className="font-heading text-base sm:text-lg font-bold">
+            <span className="font-heading text-sm sm:text-base font-bold">
               deploy<span className="gradient-text">flow</span>
             </span>
           </div>
@@ -873,7 +873,7 @@ const Dashboard = () => {
               >
                 <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-6xl">
                   <div className="mb-6 sm:mb-8">
-                    <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-2">Your Deployments</h1>
+                    <h1 className="font-heading text-xl sm:text-2xl font-bold mb-2">Your Deployments</h1>
                     <p className="font-body text-muted-foreground">
                       Manage and monitor your deployed projects
                     </p>
@@ -886,7 +886,7 @@ const Dashboard = () => {
                   ) : deployments.length === 0 ? (
                     <div className="text-center py-12 glow-card rounded-xl border border-border p-12">
                       <Activity size={48} className="mx-auto text-muted-foreground mb-4" />
-                      <h3 className="font-heading text-lg font-semibold mb-2">No deployments yet</h3>
+                      <h3 className="font-heading text-base font-semibold mb-2">No deployments yet</h3>
                       <p className="font-body text-sm text-muted-foreground mb-6">
                         Get started by deploying your first project
                       </p>
@@ -910,7 +910,7 @@ const Dashboard = () => {
                           <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                             <div className="flex-1 w-full sm:w-auto space-y-3">
                               <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                                <h3 className="font-heading text-base sm:text-lg font-semibold text-foreground">
+                                <h3 className="font-heading text-sm sm:text-base font-semibold text-foreground">
                                   {deployment.name}
                                 </h3>
                                 <span className={`text-xs font-medium px-2 py-1 rounded-full ${
@@ -1050,7 +1050,7 @@ const Dashboard = () => {
                     deployStatus === "deploying" && deployLogs.length > 0 ? "pb-[45vh] md:pb-6 sm:md:pb-8" : ""
                   }`}>
                     <div className="mb-6 sm:mb-8">
-                      <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-2">Deploy Your Project</h1>
+                      <h1 className="font-heading text-xl sm:text-2xl font-bold mb-2">Deploy Your Project</h1>
                       <p className="font-body text-muted-foreground">
                         Connect your repositories, configure environment, and ship to production
                       </p>
@@ -1097,7 +1097,7 @@ const Dashboard = () => {
                             <GitBranch size={16} className="text-primary" />
                           </div>
                           <div>
-                            <h2 className="font-heading text-base font-semibold">Repositories</h2>
+                            <h2 className="font-heading text-sm font-semibold">Repositories</h2>
                             <p className="font-body text-xs text-muted-foreground">
                               At least one repository required
                             </p>
@@ -1152,7 +1152,7 @@ const Dashboard = () => {
                               <Settings size={16} className="text-primary" />
                             </div>
                             <div>
-                              <h2 className="font-heading text-base font-semibold">Environment Variables</h2>
+                              <h2 className="font-heading text-sm font-semibold">Environment Variables</h2>
                               <p className="font-body text-xs text-muted-foreground">
                                 Optional configuration
                               </p>
@@ -1363,7 +1363,7 @@ const Dashboard = () => {
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-heading">
+            <DialogTitle className="text-lg font-heading">
               Upgrade Your Plan
             </DialogTitle>
             <DialogDescription>
@@ -1374,9 +1374,9 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
             {/* Starter Plan */}
             <div className="border border-border rounded-lg p-6 hover:border-primary/50 transition-all">
-              <h3 className="font-heading text-xl font-bold mb-2">Starter</h3>
+              <h3 className="font-heading text-base font-bold mb-2">Starter</h3>
               <div className="mb-4">
-                <span className="text-3xl font-bold">₹99</span>
+                <span className="text-2xl font-bold">₹99</span>
                 <span className="text-muted-foreground">/mo</span>
               </div>
               <p className="text-sm text-muted-foreground mb-4">
@@ -1415,9 +1415,9 @@ const Dashboard = () => {
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-medium">
                 Popular
               </div>
-              <h3 className="font-heading text-xl font-bold mb-2">Growth</h3>
+              <h3 className="font-heading text-base font-bold mb-2">Growth</h3>
               <div className="mb-4">
-                <span className="text-3xl font-bold">₹199</span>
+                <span className="text-2xl font-bold">₹199</span>
                 <span className="text-muted-foreground">/mo</span>
               </div>
               <p className="text-sm text-muted-foreground mb-4">
@@ -1453,9 +1453,9 @@ const Dashboard = () => {
 
             {/* Business Plan */}
             <div className="border border-border rounded-lg p-6 hover:border-primary/50 transition-all">
-              <h3 className="font-heading text-xl font-bold mb-2">Business</h3>
+              <h3 className="font-heading text-base font-bold mb-2">Business</h3>
               <div className="mb-4">
-                <span className="text-3xl font-bold">₹299</span>
+                <span className="text-2xl font-bold">₹299</span>
                 <span className="text-muted-foreground">/mo</span>
               </div>
               <p className="text-sm text-muted-foreground mb-4">

@@ -185,23 +185,19 @@ const Pricing = () => {
   };
 
   return (
-    <section id="pricing" className="py-20 sm:py-28 md:py-32 relative">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-      </div>
+    <section id="pricing" className="py-20 sm:py-24 md:py-32 relative">
       <div className="container mx-auto px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-12 sm:mb-16 md:mb-20"
+          className="text-center mb-16 sm:mb-20"
         >
-          <span className="font-body text-xs text-primary tracking-widest uppercase">Pricing</span>
-          <h2 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold mt-2 sm:mt-3">
+          <h2 className="font-heading text-xl sm:text-2xl md:text-3xl font-bold mb-3">
             Simple, Transparent Pricing
           </h2>
-          <p className="font-body text-sm sm:text-base text-muted-foreground mt-3 sm:mt-4 max-w-lg mx-auto px-4">
+          <p className="font-body text-xs sm:text-sm text-muted-foreground max-w-2xl mx-auto">
             Choose the perfect plan for your deployment needs.
           </p>
         </motion.div>
@@ -212,31 +208,31 @@ const Pricing = () => {
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
-              transition={{ delay: i * 0.12, duration: 0.6 }}
-              className={`rounded-lg sm:rounded-xl p-6 sm:p-8 border transition-all duration-500 ${
+              transition={{ delay: i * 0.1, duration: 0.5 }}
+              className={`rounded-xl p-6 sm:p-8 border transition-all duration-300 ${
                 plan.highlight
-                  ? "border-primary/40 glow-card animate-pulse-glow"
-                  : "border-border bg-card"
+                  ? "border-primary/50 bg-primary/5"
+                  : "border-border/50 bg-card"
               }`}
             >
               {plan.highlight && (
-                <span className="inline-block font-body text-xs text-primary tracking-widest uppercase mb-3 sm:mb-4">
+                <span className="inline-block font-body text-[9px] text-primary tracking-widest uppercase mb-2 sm:mb-3">
                   Most Popular
                 </span>
               )}
-              <h3 className="font-heading text-xl sm:text-2xl font-bold">{plan.name}</h3>
-              <div className="mt-3 sm:mt-4 mb-1.5 sm:mb-2">
-                <span className="font-heading text-3xl sm:text-4xl font-bold">{plan.price}</span>
+              <h3 className="font-heading text-base sm:text-lg font-bold">{plan.name}</h3>
+              <div className="mt-2 sm:mt-3 mb-1 sm:mb-1.5">
+                <span className="font-heading text-xl sm:text-2xl font-bold">{plan.price}</span>
                 {plan.period && (
-                  <span className="font-body text-muted-foreground text-sm">{plan.period}</span>
+                  <span className="font-body text-muted-foreground text-[10px]">{plan.period}</span>
                 )}
               </div>
-              <p className="font-body text-xs sm:text-sm text-muted-foreground mb-6 sm:mb-8">{plan.description}</p>
+              <p className="font-body text-[10px] text-muted-foreground mb-5 sm:mb-6">{plan.description}</p>
 
               <button
                 onClick={() => handleSubscribe(plan.id, plan.isEnterprise || false)}
                 disabled={loading === plan.id}
-                className={`flex items-center justify-center gap-2 w-full py-2.5 sm:py-3 rounded-lg font-body text-xs sm:text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`flex items-center justify-center gap-2 w-full py-2 sm:py-2.5 rounded-lg font-body text-[10px] sm:text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                   plan.highlight
                     ? "bg-primary text-primary-foreground hover:opacity-90"
                     : "border border-border text-foreground hover:border-muted-foreground/30"
@@ -246,10 +242,10 @@ const Pricing = () => {
                 {plan.isEnterprise ? <MessageCircle size={14} /> : <ArrowRight size={14} />}
               </button>
 
-              <ul className="mt-6 sm:mt-8 space-y-2.5 sm:space-y-3">
+              <ul className="mt-5 sm:mt-6 space-y-2 sm:space-y-2.5">
                 {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-center gap-3 font-body text-xs sm:text-sm text-muted-foreground">
-                    <Check size={14} className="text-primary shrink-0" />
+                  <li key={feature} className="flex items-center gap-2 font-body text-[10px] sm:text-xs text-muted-foreground">
+                    <Check size={12} className="text-primary shrink-0" />
                     {feature}
                   </li>
                 ))}
