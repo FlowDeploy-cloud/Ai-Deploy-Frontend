@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { deploymentApi, connectWebSocket, getToken, subscriptionApi, authApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 
 interface EnvVar {
   id: string;
@@ -39,7 +40,7 @@ interface Deployment {
 }
 
 type DeployStatus = "idle" | "deploying" | "success";
-type ActiveView = "deployments" | "deploy";
+type ActiveView = "deployments" | "deploy" | "settings";
 
 const Dashboard = () => {
   const { user, logout, isAuthenticated, isLoading } = useAuth();
@@ -73,6 +74,14 @@ const Dashboard = () => {
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [showRepoSelector, setShowRepoSelector] = useState(false);
   const [repoSearchTerm, setRepoSearchTerm] = useState("");
+  
+  // Settings state
+  const [emailMonitoring, setEmailMonitoring] = useState(() => {
+    return localStorage.getItem('emailMonitoring') === 'true';
+  });
+  const [newsletter, setNewsletter] = useState(() => {
+    return localStorage.getItem('newsletter') === 'true';
+  });
 
   // Redirect if not authenticated (after loading completes)
   useEffect(() => {
@@ -807,6 +816,17 @@ const Dashboard = () => {
                   </span>
                 )}
               </button>
+              <button
+                onClick={() => setActiveView("settings")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-body text-sm transition-all ${
+                  activeView === "settings"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
+              >
+                <Settings size={18} />
+                Settings
+              </button>
             </nav>
           </div>
         </motion.div>
@@ -871,6 +891,20 @@ const Dashboard = () => {
                           {deployments.length}
                         </span>
                       )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActiveView("settings");
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-body text-sm transition-all ${
+                        activeView === "settings"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <Settings size={18} />
+                      Settings
                     </button>
                   </nav>
                   
@@ -1451,6 +1485,211 @@ const Dashboard = () => {
                     </motion.div>
                   )}
                 </AnimatePresence>
+              </motion.div>
+            )}
+
+            {activeView === "settings" && (
+              <motion.div
+                key="settings"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="flex-1 overflow-y-auto"
+              >
+                <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-4xl">
+                  <div className="mb-6 sm:mb-8">
+                    <h1 className="font-heading text-xl sm:text-2xl font-bold mb-2">Settings</h1>
+                    <p className="font-body text-muted-foreground">
+                      Manage your account, subscription, and preferences
+                    </p>
+                  </div>
+
+                  <div className="space-y-6">
+                    {/* Profile Section */}
+                    <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-6">
+                      <div className="flex items-center gap-4 mb-4">
+                        {user?.avatar_url ? (
+                          <img 
+                            src={user.avatar_url} 
+                            alt={user.username} 
+                            className="w-16 h-16 rounded-full border-2 border-border"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                            <User size={32} className="text-primary" />
+                          </div>
+                        )}
+                        <div>
+                          <h2 className="font-heading text-lg font-semibold">{user?.username}</h2>
+                          <p className="text-sm text-muted-foreground">{user?.email}</p>
+                          {user?.github_username && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              GitHub: @{user.github_username}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Subscription Section */}
+                    <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <CreditCard size={20} className="text-primary" />
+                        <h2 className="font-heading text-base font-semibold">Subscription</h2>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between py-3 border-b border-border">
+                          <div>
+                            <p className="text-sm font-medium">Current Plan</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {user?.plan === 'free' && 'Free - 1 deployment'}
+                              {user?.plan === 'starter' && 'Starter - 2 frontend, 1 backend'}
+                              {user?.plan === 'growth' && 'Growth - 5 frontend, 3 backend'}
+                              {user?.plan === 'business' && 'Business - 10 frontend, 7 backend'}
+                              {user?.plan === 'pro' && 'Pro - 50 deployments'}
+                              {user?.plan === 'enterprise' && 'Enterprise - Unlimited'}
+                            </p>
+                          </div>
+                          <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium capitalize">
+                            {user?.plan || 'free'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between py-3 border-b border-border">
+                          <div>
+                            <p className="text-sm font-medium">Status</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {user?.subscription_status === 'active' 
+                                ? 'Active subscription' 
+                                : user?.subscription_status === 'expired'
+                                ? 'Subscription expired'
+                                : user?.subscription_status === 'cancelled'
+                                ? 'Subscription cancelled'
+                                : 'No active subscription'}
+                            </p>
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${
+                            user?.subscription_status === 'active' 
+                              ? 'bg-green-500/10 text-green-500' 
+                              : 'bg-muted text-muted-foreground'
+                          }`}>
+                            {user?.subscription_status || 'none'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between py-3">
+                          <div>
+                            <p className="text-sm font-medium">Deployments</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {deployments.length} of {user?.max_deployments || 5} used
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-primary transition-all"
+                                style={{ 
+                                  width: `${Math.min((deployments.length / (user?.max_deployments || 5)) * 100, 100)}%` 
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {user?.plan === 'free' && (
+                          <button
+                            onClick={() => setShowPaymentModal(true)}
+                            className="w-full mt-4 py-2.5 px-4 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 font-medium text-sm"
+                          >
+                            <ArrowRight size={16} />
+                            Upgrade Plan
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Email Preferences Section */}
+                    <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Settings size={20} className="text-primary" />
+                        <h2 className="font-heading text-base font-semibold">Email Preferences</h2>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between py-3 border-b border-border">
+                          <div>
+                            <p className="text-sm font-medium">Log Monitoring Emails</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Receive email alerts for errors and critical issues
+                            </p>
+                          </div>
+                          <Switch
+                            checked={emailMonitoring}
+                            onCheckedChange={(checked) => {
+                              setEmailMonitoring(checked);
+                              localStorage.setItem('emailMonitoring', checked.toString());
+                              toast({
+                                title: checked ? "Email Monitoring Enabled" : "Email Monitoring Disabled",
+                                description: checked 
+                                  ? "You'll receive email alerts for deployment issues" 
+                                  : "Email alerts have been disabled",
+                              });
+                            }}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between py-3">
+                          <div>
+                            <p className="text-sm font-medium">Newsletter</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Get updates about new features and tips
+                            </p>
+                          </div>
+                          <Switch
+                            checked={newsletter}
+                            onCheckedChange={(checked) => {
+                              setNewsletter(checked);
+                              localStorage.setItem('newsletter', checked.toString());
+                              toast({
+                                title: checked ? "Newsletter Subscribed" : "Newsletter Unsubscribed",
+                                description: checked 
+                                  ? "You'll receive our newsletter with updates" 
+                                  : "You've unsubscribed from the newsletter",
+                              });
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Account Actions Section */}
+                    <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <User size={20} className="text-primary" />
+                        <h2 className="font-heading text-base font-semibold">Account Actions</h2>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <button
+                          onClick={() => {
+                            logout();
+                            navigate('/');
+                            toast({
+                              title: "Logged Out",
+                              description: "You've been successfully logged out",
+                            });
+                          }}
+                          className="w-full py-2.5 px-4 bg-destructive/10 text-destructive rounded-lg hover:bg-destructive/20 transition-all flex items-center justify-center gap-2 font-medium text-sm border border-destructive/20"
+                        >
+                          <LogOut size={16} />
+                          Logout
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

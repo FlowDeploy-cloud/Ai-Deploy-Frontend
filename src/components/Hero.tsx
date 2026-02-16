@@ -1,9 +1,12 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Github } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import heroImage from "@/assets/image.png";
 
 const Hero = () => {
+  const { isAuthenticated } = useAuth();
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Subtle background gradient */}
@@ -45,23 +48,33 @@ const Hero = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.6 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8"
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8"
           >
-            <Link
-              to="/signup"
-              className="group flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2 rounded-lg font-body font-medium text-xs hover:opacity-90 transition-all min-w-[120px]"
-            >
-              Get started
-            </Link>
+            {isAuthenticated ? (
+              <Link
+                to="/dashboard"
+                className="group flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2 rounded-md font-body font-medium text-sm hover:opacity-90 transition-all"
+              >
+                Dashboard
+                <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            ) : (
+              <Link
+                to="/signup"
+                className="group flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2 rounded-md font-body font-medium text-sm hover:opacity-90 transition-all"
+              >
+                Get started
+              </Link>
+            )}
             <a
               href="https://github.com/yourusername/deployflow"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 border border-border px-5 py-2 rounded-lg font-body text-xs text-foreground hover:bg-muted/50 transition-all min-w-[120px]"
+              className="flex items-center justify-center gap-2 border border-border px-5 py-2 rounded-md font-body text-sm text-foreground hover:bg-muted/50 transition-all"
             >
-              <Github size={14} />
+              <Github size={16} />
               GitHub
-              <span className="text-muted-foreground text-[10px] ml-1">3.9k</span>
+              <span className="text-muted-foreground text-xs ml-1">3.9k</span>
             </a>
           </motion.div>
 
@@ -70,18 +83,18 @@ const Hero = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7, duration: 0.6 }}
-            className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-sm text-muted-foreground"
+            className="flex flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground"
           >
             <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+              <span className="w-1 h-1 rounded-full bg-primary/60" />
               Open source
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+              <span className="w-1 h-1 rounded-full bg-primary/60" />
               Self-host in minutes
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+              <span className="w-1 h-1 rounded-full bg-primary/60" />
               Free tier
             </span>
           </motion.div>

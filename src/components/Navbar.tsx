@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navLinks = [
   { label: "Pricing", href: "/pricing" },
@@ -12,6 +13,7 @@ const navLinks = [
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -28,9 +30,9 @@ const Navbar = () => {
         scrolled ? "glass border-b border-border/50" : "bg-transparent"
       }`}
     >
-      <div className="container mx-auto flex items-center justify-between py-4 px-4 sm:px-6">
-        <Link to="/" className="font-heading text-sm sm:text-base font-bold tracking-tight text-foreground flex items-center gap-2">
-          <div className="w-5 h-5 rounded bg-primary/10 flex items-center justify-center">
+      <div className="container mx-auto flex items-center justify-between py-3 px-4 sm:px-6">
+        <Link to="/" className="font-heading text-sm font-semibold tracking-tight text-foreground flex items-center gap-1.5">
+          <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
             <span className="text-primary text-xs">⚡</span>
           </div>
           deployFlow
@@ -61,19 +63,28 @@ const Navbar = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <Link
-            to="/signup"
-            className="font-body text-xs bg-foreground text-background px-4 py-1.5 rounded-lg hover:opacity-90 transition-opacity font-medium"
-          >
-            Get started
-          </Link>
+          {isAuthenticated ? (
+            <Link
+              to="/dashboard"
+              className="font-body text-xs bg-foreground text-background px-4 py-1.5 rounded-md hover:opacity-90 transition-opacity font-medium"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <Link
+              to="/signup"
+              className="font-body text-xs bg-foreground text-background px-4 py-1.5 rounded-md hover:opacity-90 transition-opacity font-medium"
+            >
+              Get started
+            </Link>
+          )}
         </div>
 
         <button
           className="md:hidden text-foreground"
           onClick={() => setMobileOpen(!mobileOpen)}
         >
-          {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
@@ -85,7 +96,7 @@ const Navbar = () => {
             exit={{ height: 0, opacity: 0 }}
             className="md:hidden glass overflow-hidden border-b border-border/50"
           >
-            <div className="flex flex-col gap-4 px-6 py-6">
+            <div className="flex flex-col gap-3 px-6 py-4">
               {navLinks.map((link) => (
                 link.external ? (
                   <a
@@ -110,13 +121,23 @@ const Navbar = () => {
                 )
               ))}
               <div className="flex flex-col gap-2 mt-2">
-                <Link
-                  to="/signup"
-                  className="font-body text-xs bg-foreground text-background px-4 py-2 rounded-lg text-center font-medium"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  Get started
-                </Link>
+                {isAuthenticated ? (
+                  <Link
+                    to="/dashboard"
+                    className="font-body text-xs bg-foreground text-background px-4 py-2 rounded-md text-center font-medium"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                ) : (
+                  <Link
+                    to="/signup"
+                    className="font-body text-xs bg-foreground text-background px-4 py-2 rounded-md text-center font-medium"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Get started
+                  </Link>
+                )}
               </div>
             </div>
           </motion.div>
