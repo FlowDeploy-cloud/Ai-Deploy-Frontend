@@ -215,6 +215,14 @@ export const userApi = {
   },
 };
 
+// Subscription API
+export const subscriptionApi = {
+  // Get subscription warnings
+  getWarnings: async () => {
+    return apiFetch('/subscription/warnings');
+  },
+};
+
 // Socket.IO connection for real-time logs
 interface LogMessage {
   type: string;
@@ -306,6 +314,7 @@ export default {
   authApi,
   deploymentApi,
   userApi,
+  subscriptionApi,
   getToken,
   setToken,
   removeToken,

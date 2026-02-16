@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Trash2, Eye, EyeOff, Rocket, GitBranch, Server, Settings, Loader2, CheckCircle2, LogOut, User, Play, Square, RotateCw, ExternalLink, Globe, Activity, List, Terminal, FileUp, Menu, X } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Rocket, GitBranch, Server, Settings, Loader2, CheckCircle2, LogOut, User, Play, Square, RotateCw, ExternalLink, Globe, Activity, List, Terminal, FileUp, Menu, X, CreditCard, ArrowRight, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { deploymentApi, connectWebSocket, getToken } from "@/lib/api";
+import { deploymentApi, connectWebSocket, getToken, subscriptionApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface EnvVar {
   id: string;
@@ -32,6 +33,9 @@ interface Deployment {
   status: string;
   createdAt: string;
   updatedAt: string;
+  suspended_at?: string;
+  suspension_reason?: string;
+  delete_scheduled_at?: string;
 }
 
 type DeployStatus = "idle" | "deploying" | "success";
@@ -58,6 +62,10 @@ const Dashboard = () => {
   const [loadingDeployments, setLoadingDeployments] = useState(true);
   const [wsConnection, setWsConnection] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<any>(null);
+  const [loadingWarnings, setLoadingWarnings] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Redirect if not authenticated (after loading completes)
@@ -86,6 +94,42 @@ const Dashboard = () => {
       fetchDeployments();
     }
   }, [isAuthenticated]);
+
+  // Fetch subscription warnings
+  useEffect(() => {
+    const fetchWarnings = async () => {
+      try {
+        const response = await subscriptionApi.getWarnings();
+        if (response.success && response.data) {
+          setWarnings(response.data);
+          
+          // Show toast if there are critical warnings
+          if (response.data.has_warnings && response.data.warnings.length > 0) {
+            const criticalWarning = response.data.warnings.find((w: any) => w.severity === 'critical');
+            if (criticalWarning) {
+              toast({
+                title: "⚠️ Action Required",
+                description: criticalWarning.message,
+                variant: "destructive",
+                duration: 10000,
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch warnings:', error);
+      } finally {
+        setLoadingWarnings(false);
+      }
+    };
+
+    if (isAuthenticated) {
+      fetchWarnings();
+      // Refresh warnings every 5 minutes
+      const interval = setInterval(fetchWarnings, 5 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, toast]);
 
   // Cleanup WebSocket on unmount
   useEffect(() => {
@@ -214,6 +258,17 @@ const Dashboard = () => {
       return;
     }
 
+    // Check if free user has reached deployment limit
+    if (user?.plan === 'free' && deployments.length >= 1) {
+      setShowPaymentModal(true);
+      toast({
+        title: "Deployment limit reached",
+        description: "Free plan allows 1 deployment. Please upgrade to deploy more projects.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setDeployStatus("deploying");
     setDeployLogs([]);
 
@@ -332,11 +387,29 @@ const Dashboard = () => {
         }
       } else {
         setDeployStatus('idle');
-        toast({
-          title: "Deployment failed",
-          description: response.error || "An error occurred",
-          variant: "destructive",
-        });
+        
+        // Check if error is due to deployment limits
+        if (response.error && (
+          response.error.includes('limit reached') || 
+          response.error.includes('upgrade your plan')
+        )) {
+          // Show payment modal for free users
+          if (user?.plan === 'free') {
+            setShowPaymentModal(true);
+          } else {
+            toast({
+              title: "Deployment limit reached",
+              description: response.error || "Please upgrade your plan for more deployments",
+              variant: "destructive",
+            });
+          }
+        } else {
+          toast({
+            title: "Deployment failed",
+            description: response.error || "An error occurred",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       setDeployStatus('idle');
@@ -426,6 +499,131 @@ const Dashboard = () => {
     }
   };
 
+  const handleSubscribe = async (planId: string, isEnterprise: boolean) => {
+    if (isEnterprise) {
+      // Redirect to WhatsApp for enterprise plan
+      const phoneNumber = "918789601387";
+      const message = encodeURIComponent("Hi! I'm interested in the Enterprise plan for ClawDeploy.");
+      window.open(`https://wa.me/${phoneNumber}?text=${message}`, "_blank");
+      return;
+    }
+
+    setPaymentLoading(planId);
+    try {
+      const token = getToken();
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      // Create order API call
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/payments/create-order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ plan_id: planId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        toast({
+          title: "Payment Error",
+          description: errorData.error || `Server error: ${response.status}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        toast({
+          title: "Payment Error",
+          description: data.error || "Failed to create order. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check if Razorpay is loaded
+      if (typeof (window as any).Razorpay === 'undefined') {
+        toast({
+          title: "Payment Error",
+          description: "Payment gateway not loaded. Please refresh the page and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Initialize Razorpay
+      const options = {
+        key: data.key_id,
+        amount: data.amount,
+        currency: data.currency || "INR",
+        name: "ClawDeploy",
+        description: `${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan Subscription`,
+        order_id: data.order_id,
+        handler: async function (response: any) {
+          // Verify payment
+          const verifyResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/payments/verify-payment`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              plan_id: planId,
+            }),
+          });
+
+          const verifyData = await verifyResponse.json();
+          
+          if (verifyData.success) {
+            toast({
+              title: "Payment Successful!",
+              description: "Your subscription is now active. Refreshing...",
+            });
+            setShowPaymentModal(false);
+            // Refresh user data
+            window.location.reload();
+          } else {
+            toast({
+              title: "Payment Verification Failed",
+              description: "Please contact support.",
+              variant: "destructive",
+            });
+          }
+        },
+        prefill: {
+          name: user?.username || "",
+          email: user?.email || "",
+          contact: "",
+        },
+        theme: {
+          color: "#3b82f6",
+        },
+      };
+
+      const razorpay = new (window as any).Razorpay(options);
+      razorpay.open();
+    } catch (error) {
+      console.error("Payment error:", error);
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      toast({
+        title: "Payment Error",
+        description: `${errorMessage}. Please try again or contact support.`,
+        variant: "destructive",
+      });
+    } finally {
+      setPaymentLoading(null);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'deployed':
@@ -436,6 +634,8 @@ const Dashboard = () => {
         return 'text-red-500';
       case 'stopped':
         return 'text-gray-500';
+      case 'suspended':
+        return 'text-destructive';
       default:
         return 'text-muted-foreground';
     }
@@ -485,6 +685,56 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Subscription Warnings Banner */}
+      {warnings && warnings.has_warnings && warnings.warnings.length > 0 && (
+        <div className="border-b border-border bg-destructive/10">
+          <div className="container mx-auto px-4 sm:px-6 py-3">
+            <AnimatePresence>
+              {warnings.warnings.map((warning: any, index: number) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className={`flex items-start gap-3 ${index > 0 ? 'mt-2 pt-2 border-t border-destructive/20' : ''}`}
+                >
+                  <div className="flex-shrink-0 mt-0.5">
+                    <div className="w-6 h-6 rounded-full bg-destructive/20 flex items-center justify-center">
+                      <span className="text-destructive text-xs font-bold">!</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-destructive mb-1">
+                      {warning.message}
+                    </p>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      {warning.action_required}
+                    </p>
+                    {warning.days_until_deletion !== undefined && (
+                      <div className="inline-flex items-center gap-2 text-xs">
+                        <span className={`px-2 py-1 rounded ${
+                          warning.days_until_deletion <= 2 
+                            ? 'bg-destructive text-destructive-foreground' 
+                            : 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-300'
+                        }`}>
+                          {warning.days_until_deletion} day{warning.days_until_deletion !== 1 ? 's' : ''} remaining
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setShowPaymentModal(true)}
+                    className="flex-shrink-0 px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all"
+                  >
+                    Upgrade Now
+                  </button>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        </div>
+      )}
 
       {/* Main Content with Sidebar */}
       <div className="flex-1 flex overflow-hidden min-h-0">
@@ -667,9 +917,10 @@ const Dashboard = () => {
                                   deployment.status === 'deployed' ? 'bg-green-500/10 text-green-500' :
                                   deployment.status === 'deploying' ? 'bg-yellow-500/10 text-yellow-500' :
                                   deployment.status === 'failed' ? 'bg-red-500/10 text-red-500' :
+                                  deployment.status === 'suspended' ? 'bg-destructive/10 text-destructive' :
                                   'bg-gray-500/10 text-gray-500'
                                 }`}>
-                                  {deployment.status}
+                                  {deployment.status === 'suspended' ? '⚠️ Suspended' : deployment.status}
                                 </span>
                               </div>
 
@@ -803,6 +1054,39 @@ const Dashboard = () => {
                       <p className="font-body text-muted-foreground">
                         Connect your repositories, configure environment, and ship to production
                       </p>
+                      
+                      {/* Deployment Limit Warning for Free Users */}
+                      {user?.plan === 'free' && (
+                        <div className={`mt-4 p-4 rounded-lg border ${
+                          deployments.length >= 1 
+                            ? 'bg-destructive/10 border-destructive/30' 
+                            : 'bg-muted/50 border-border'
+                        }`}>
+                          <div className="flex items-start gap-3">
+                            <CreditCard size={20} className={deployments.length >= 1 ? 'text-destructive' : 'text-primary'} />
+                            <div className="flex-1">
+                              <p className="font-body text-sm font-medium mb-1">
+                                {deployments.length >= 1 
+                                  ? '⚠️ Deployment Limit Reached' 
+                                  : `Free Plan: ${deployments.length}/1 deployments used`}
+                              </p>
+                              <p className="font-body text-xs text-muted-foreground">
+                                {deployments.length >= 1 
+                                  ? 'Upgrade your plan to deploy more projects and unlock premium features.' 
+                                  : 'You can deploy 1 project on the free plan. Upgrade for more deployments.'}
+                              </p>
+                              {deployments.length >= 1 && (
+                                <button
+                                  onClick={() => setShowPaymentModal(true)}
+                                  className="mt-2 inline-flex items-center gap-2 text-xs text-primary hover:underline font-medium"
+                                >
+                                  View Plans <ArrowRight size={14} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-4 sm:space-y-6">
@@ -1074,6 +1358,156 @@ const Dashboard = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Payment Modal */}
+      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-heading">
+              Upgrade Your Plan
+            </DialogTitle>
+            <DialogDescription>
+              You've reached your deployment limit. Upgrade to deploy more projects.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
+            {/* Starter Plan */}
+            <div className="border border-border rounded-lg p-6 hover:border-primary/50 transition-all">
+              <h3 className="font-heading text-xl font-bold mb-2">Starter</h3>
+              <div className="mb-4">
+                <span className="text-3xl font-bold">₹99</span>
+                <span className="text-muted-foreground">/mo</span>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Perfect for personal projects and MVPs.
+              </p>
+              <ul className="space-y-2 mb-6 text-sm">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-primary" />
+                  1 Frontend deployment
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-primary" />
+                  1 Backend deployment
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-primary" />
+                  Automatic SSL
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-primary" />
+                  Community support
+                </li>
+              </ul>
+              <button
+                onClick={() => handleSubscribe("starter", false)}
+                disabled={paymentLoading === "starter"}
+                className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {paymentLoading === "starter" ? "Processing..." : "Get Started"}
+                <ArrowRight size={16} />
+              </button>
+            </div>
+
+            {/* Growth Plan */}
+            <div className="border-2 border-primary rounded-lg p-6 relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-medium">
+                Popular
+              </div>
+              <h3 className="font-heading text-xl font-bold mb-2">Growth</h3>
+              <div className="mb-4">
+                <span className="text-3xl font-bold">₹199</span>
+                <span className="text-muted-foreground">/mo</span>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                For growing startups and multiple projects.
+              </p>
+              <ul className="space-y-2 mb-6 text-sm">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-primary" />
+                  5 Frontend deployments
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-primary" />
+                  3 Backend deployments
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-primary" />
+                  Everything in Starter
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-primary" />
+                  Priority support
+                </li>
+              </ul>
+              <button
+                onClick={() => handleSubscribe("growth", false)}
+                disabled={paymentLoading === "growth"}
+                className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {paymentLoading === "growth" ? "Processing..." : "Start Growing"}
+                <ArrowRight size={16} />
+              </button>
+            </div>
+
+            {/* Business Plan */}
+            <div className="border border-border rounded-lg p-6 hover:border-primary/50 transition-all">
+              <h3 className="font-heading text-xl font-bold mb-2">Business</h3>
+              <div className="mb-4">
+                <span className="text-3xl font-bold">₹299</span>
+                <span className="text-muted-foreground">/mo</span>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                For established businesses and teams.
+              </p>
+              <ul className="space-y-2 mb-6 text-sm">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-primary" />
+                  10 Frontend deployments
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-primary" />
+                  7 Backend deployments
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-primary" />
+                  Everything in Growth
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-primary" />
+                  24/7 Priority support
+                </li>
+              </ul>
+              <button
+                onClick={() => handleSubscribe("business", false)}
+                disabled={paymentLoading === "business"}
+                className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {paymentLoading === "business" ? "Processing..." : "Scale Up"}
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
+
+          <div className="text-center pt-4 border-t border-border">
+            <p className="text-sm text-muted-foreground mb-2">
+              Need more? Contact us for Enterprise plans
+            </p>
+            <button
+              onClick={() => {
+                const phoneNumber = "918789601387";
+                const message = encodeURIComponent("Hi! I'm interested in the Enterprise plan for ClawDeploy.");
+                window.open(`https://wa.me/${phoneNumber}?text=${message}`, "_blank");
+              }}
+              className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+            >
+              <MessageCircle size={16} />
+              Contact Sales
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

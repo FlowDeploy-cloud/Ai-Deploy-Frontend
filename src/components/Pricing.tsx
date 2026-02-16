@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Check, ArrowRight, MessageCircle } from "lucide-react";
 import { useState } from "react";
+import { getToken } from "@/lib/api";
 
 const plans = [
   {
@@ -85,7 +86,7 @@ const Pricing = () => {
     if (isEnterprise) {
       // Redirect to WhatsApp for enterprise plan
       const phoneNumber = "918789601387";
-      const message = encodeURIComponent("Hi! I'm interested in the Enterprise plan for ClawDeploy.");
+      const message = encodeURIComponent("Hi! I'm interested in the Enterprise plan for FlowDeploy.cloud.");
       window.open(`https://wa.me/${phoneNumber}?text=${message}`, "_blank");
       return;
     }
@@ -94,7 +95,7 @@ const Pricing = () => {
     try {
       // TODO: Implement Razorpay payment flow
       // 1. Get token from localStorage
-      const token = localStorage.getItem("token");
+      const token = getToken();
       if (!token) {
         window.location.href = "/login";
         return;
@@ -110,6 +111,12 @@ const Pricing = () => {
         body: JSON.stringify({ plan_id: planId }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(errorData.error || `Server error: ${response.status}`);
+        return;
+      }
+
       const data = await response.json();
       
       if (!data.success) {
@@ -117,17 +124,23 @@ const Pricing = () => {
         return;
       }
 
+      // Check if Razorpay is loaded
+      if (typeof (window as any).Razorpay === 'undefined') {
+        alert("Payment gateway not loaded. Please refresh the page and try again.");
+        return;
+      }
+
       // 3. Initialize Razorpay
       const options = {
-        key: data.data.razorpay_key_id,
-        amount: data.data.amount,
-        currency: "INR",
+        key: data.key_id,
+        amount: data.amount,
+        currency: data.currency || "INR",
         name: "ClawDeploy",
         description: `${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan Subscription`,
-        order_id: data.data.order_id,
+        order_id: data.order_id,
         handler: async function (response: any) {
           // Verify payment
-          const verifyResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/payments/verify-payment`, {
+          const verifyResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000/api'}/payments/verify-payment`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -164,7 +177,8 @@ const Pricing = () => {
       razorpay.open();
     } catch (error) {
       console.error("Payment error:", error);
-      alert("An error occurred. Please try again.");
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      alert(`Payment Error: ${errorMessage}. Please try again or contact support.`);
     } finally {
       setLoading(null);
     }
@@ -175,7 +189,6 @@ const Pricing = () => {
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-border to-transparent" />
       </div>
-
       <div className="container mx-auto px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -192,7 +205,6 @@ const Pricing = () => {
             Choose the perfect plan for your deployment needs.
           </p>
         </motion.div>
-
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-7xl mx-auto items-start">
           {plans.map((plan, i) => (
             <motion.div
