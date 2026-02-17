@@ -52,11 +52,11 @@ const Signup = () => {
         {/* Logo */}
         <Link to="/" className="flex items-center justify-center gap-2 mb-8">
           <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
-            <span className="text-primary text-sm">⚡</span>
+            <span className="text-primary text-sm"></span>
           </div>
-          <h1 className="font-heading text-base font-semibold">
+          {/* <h1 className="font-heading text-base font-semibold">
             deploy<span className="gradient-text">flow</span>
-          </h1>
+          </h1> */}
         </Link>
 
         {/* Content Card */}

@@ -93,7 +93,7 @@ const HowItWorks = () => {
             </div>
             <div className="p-4 sm:p-6 font-mono text-xs sm:text-sm space-y-1.5 sm:space-y-2 overflow-x-auto">
               <p className="text-muted-foreground">
-                <span className="text-primary">$</span> deployflow deploy --repo https://github.com/user/app
+                <span className="text-primary">$</span> deployflow deploy --repo https://github.com/FlowDeploy-cloud
               </p>
               <p className="text-muted-foreground">Cloning repository...</p>
               <p className="text-muted-foreground">Installing dependencies...</p>

@@ -67,14 +67,14 @@ const Hero = () => {
               </Link>
             )}
             <a
-              href="https://github.com/yourusername/deployflow"
+              href="https://github.com/FlowDeploy-cloud"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 border border-border px-5 py-2 rounded-md font-body text-sm text-foreground hover:bg-muted/50 transition-all"
             >
               <Github size={16} />
               GitHub
-              <span className="text-muted-foreground text-xs ml-1">3.9k</span>
+              {/* <span className="text-muted-foreground text-xs ml-1">3.9k</span> */}
             </a>
           </motion.div>
 

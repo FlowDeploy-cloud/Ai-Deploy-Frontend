@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const navLinks = [
   { label: "Pricing", href: "/pricing" },
   { label: "Docs", href: "/docs" },
-  { label: "GitHub", href: "https://github.com/yourusername/deployflow", external: true },
+  { label: "GitHub", href: "https://github.com/FlowDeploy-cloud", external: true },
 ];
 
 const Navbar = () => {
@@ -33,7 +33,7 @@ const Navbar = () => {
       <div className="container mx-auto flex items-center justify-between py-3 px-4 sm:px-6">
         <Link to="/" className="font-heading text-sm font-semibold tracking-tight text-foreground flex items-center gap-1.5">
           <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
-            <span className="text-primary text-xs">⚡</span>
+            <span className="text-primary text-xs"></span>
           </div>
           deployFlow
         </Link>

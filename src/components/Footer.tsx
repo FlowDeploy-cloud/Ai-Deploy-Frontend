@@ -52,7 +52,7 @@ const Footer = () => {
             {/* Social */}
             <div className="flex items-center gap-4">
               <a
-                href="https://github.com/yourusername/deployflow"
+                href="https://github.com/FlowDeploy-cloud"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground transition-colors"
