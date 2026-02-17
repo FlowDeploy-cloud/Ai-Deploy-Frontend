@@ -298,12 +298,12 @@ const Dashboard = () => {
       return;
     }
 
-    // Check if free user has reached deployment limit
-    if (user?.plan === 'free' && deployments.length >= 1) {
+    // Check if free user is trying to deploy
+    if (user?.plan === 'free') {
       setShowPaymentModal(true);
       toast({
-        title: "Deployment limit reached",
-        description: "Free plan allows 1 deployment. Please upgrade to deploy more projects.",
+        title: "Upgrade Required",
+        description: "Free plan does not support deployments. Please upgrade to a paid plan.",
         variant: "destructive",
       });
       return;
@@ -680,8 +680,6 @@ const Dashboard = () => {
         return 'text-muted-foreground';
     }
   };
-
-  // Show loading screen while checking authentication
   if (isLoading) {
     return (
       <div className="h-screen bg-background hero-grid flex items-center justify-center">
@@ -719,8 +717,7 @@ const Dashboard = () => {
               onClick={logout}
               className="flex items-center gap-1 sm:gap-2 text-muted-foreground hover:text-destructive transition-colors font-body text-xs sm:text-sm p-2 sm:p-0"
             >
-              <LogOut size={16} />
-              <span className="hidden sm:inline">Logout</span>
+              <span className="hidden sm:inline"></span>
             </button>
           </div>
         </div>
@@ -1120,34 +1117,24 @@ const Dashboard = () => {
                         Connect your repositories, configure environment, and ship to production
                       </p>
                       
-                      {/* Deployment Limit Warning for Free Users */}
+                      {/* Deployment Restriction Warning for Free Users */}
                       {user?.plan === 'free' && (
-                        <div className={`mt-4 p-4 rounded-lg border ${
-                          deployments.length >= 1 
-                            ? 'bg-destructive/10 border-destructive/30' 
-                            : 'bg-muted/50 border-border'
-                        }`}>
+                        <div className="mt-4 p-4 rounded-lg border bg-destructive/10 border-destructive/30">
                           <div className="flex items-start gap-3">
-                            <CreditCard size={20} className={deployments.length >= 1 ? 'text-destructive' : 'text-primary'} />
+                            <CreditCard size={20} className="text-destructive" />
                             <div className="flex-1">
                               <p className="font-body text-sm font-medium mb-1">
-                                {deployments.length >= 1 
-                                  ? '⚠️ Deployment Limit Reached' 
-                                  : `Free Plan: ${deployments.length}/1 deployments used`}
+                                ⚠️ Deployments Not Available on Free Plan
                               </p>
                               <p className="font-body text-xs text-muted-foreground">
-                                {deployments.length >= 1 
-                                  ? 'Upgrade your plan to deploy more projects and unlock premium features.' 
-                                  : 'You can deploy 1 project on the free plan. Upgrade for more deployments.'}
+                                The free plan does not support deployments. Upgrade to a paid plan to deploy your projects and access all features.
                               </p>
-                              {deployments.length >= 1 && (
-                                <button
-                                  onClick={() => setShowPaymentModal(true)}
-                                  className="mt-2 inline-flex items-center gap-2 text-xs text-primary hover:underline font-medium"
-                                >
-                                  View Plans <ArrowRight size={14} />
-                                </button>
-                              )}
+                              <button
+                                onClick={() => setShowPaymentModal(true)}
+                                className="mt-2 inline-flex items-center gap-2 text-xs text-primary hover:underline font-medium"
+                              >
+                                View Plans <ArrowRight size={14} />
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -1544,7 +1531,7 @@ const Dashboard = () => {
                           <div>
                             <p className="text-sm font-medium">Current Plan</p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              {user?.plan === 'free' && 'Free - 1 deployment'}
+                              {user?.plan === 'free' && 'Free - No deployments'}
                               {user?.plan === 'starter' && 'Starter - 2 frontend, 1 backend'}
                               {user?.plan === 'growth' && 'Growth - 5 frontend, 3 backend'}
                               {user?.plan === 'business' && 'Business - 10 frontend, 7 backend'}
