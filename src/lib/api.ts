@@ -38,6 +38,23 @@ interface User {
   auth_provider?: 'local' | 'github';
 }
 
+export interface NotificationSettings {
+  alert_email_enabled: boolean;
+  alert_email: string;
+  alert_whatsapp_enabled: boolean;
+  alert_whatsapp_number: string;
+  alert_whatsapp_provider: 'twilio' | '360dialog';
+  critical_only: boolean;
+}
+
+export interface CalendarSettings {
+  enabled: boolean;
+  timezone: string;
+  calendar_id: string;
+  daily_hour: number;
+  daily_minute: number;
+}
+
 // Get stored user
 export const getUser = (): User | null => {
   const user = localStorage.getItem(USER_KEY);
@@ -238,6 +255,28 @@ export const userApi = {
     return apiFetch('/user/plan', {
       method: 'POST',
       body: JSON.stringify({ plan }),
+    });
+  },
+
+  getNotificationSettings: async () => {
+    return apiFetch<NotificationSettings>('/user/notification-settings');
+  },
+
+  updateNotificationSettings: async (data: NotificationSettings) => {
+    return apiFetch<NotificationSettings>('/user/notification-settings', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  getCalendarSettings: async () => {
+    return apiFetch<CalendarSettings>('/user/calendar-settings');
+  },
+
+  updateCalendarSettings: async (data: CalendarSettings) => {
+    return apiFetch<CalendarSettings>('/user/calendar-settings', {
+      method: 'PUT',
+      body: JSON.stringify(data),
     });
   },
 };

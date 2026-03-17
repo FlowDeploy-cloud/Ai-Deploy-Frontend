@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Trash2, Eye, EyeOff, Rocket, GitBranch, Server, Settings, Loader2, CheckCircle2, LogOut, User, Play, Square, RotateCw, ExternalLink, Globe, Activity, List, Terminal, FileUp, Menu, X, CreditCard, ArrowRight, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { deploymentApi, connectWebSocket, getToken, subscriptionApi, authApi } from "@/lib/api";
+import { deploymentApi, connectWebSocket, getToken, subscriptionApi, authApi, userApi, NotificationSettings, CalendarSettings } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 
 interface EnvVar {
   id: string;
@@ -75,13 +76,28 @@ const Dashboard = () => {
   const [showRepoSelector, setShowRepoSelector] = useState(false);
   const [repoSearchTerm, setRepoSearchTerm] = useState("");
   
-  // Settings state
-  const [emailMonitoring, setEmailMonitoring] = useState(() => {
-    return localStorage.getItem('emailMonitoring') === 'true';
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
+    alert_email_enabled: false,
+    alert_email: user?.email || "",
+    alert_whatsapp_enabled: false,
+    alert_whatsapp_number: "",
+    alert_whatsapp_provider: "twilio",
+    critical_only: true,
   });
-  const [newsletter, setNewsletter] = useState(() => {
-    return localStorage.getItem('newsletter') === 'true';
+  const [calendarSettings, setCalendarSettings] = useState<CalendarSettings>({
+    enabled: false,
+    timezone: "Asia/Kolkata",
+    calendar_id: "primary",
+    daily_hour: 9,
+    daily_minute: 0,
   });
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [savingNotificationSettings, setSavingNotificationSettings] = useState(false);
+  const [savingCalendarSettings, setSavingCalendarSettings] = useState(false);
+  const notificationHydratedRef = useRef(false);
+  const calendarHydratedRef = useRef(false);
+  const notificationAutoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const calendarAutoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Redirect if not authenticated (after loading completes)
   useEffect(() => {
@@ -179,6 +195,142 @@ const Dashboard = () => {
       }
     };
   }, [wsConnection]);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (!isAuthenticated) return;
+
+      try {
+        setSettingsLoading(true);
+        const [notificationResponse, calendarResponse] = await Promise.all([
+          userApi.getNotificationSettings(),
+          userApi.getCalendarSettings(),
+        ]);
+
+        if (notificationResponse.success && notificationResponse.data) {
+          setNotificationSettings(notificationResponse.data);
+        }
+
+        if (calendarResponse.success && calendarResponse.data) {
+          setCalendarSettings(calendarResponse.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch settings:', error);
+      } finally {
+        setSettingsLoading(false);
+      }
+    };
+
+    fetchSettings();
+  }, [isAuthenticated]);
+
+  const saveNotificationSettings = useCallback(async (options: { silent?: boolean } = {}) => {
+    const { silent = false } = options;
+    try {
+      setSavingNotificationSettings(true);
+      const response = await userApi.updateNotificationSettings(notificationSettings);
+
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to save notification settings');
+      }
+
+      if (!silent) {
+        toast({
+          title: 'Notification settings saved',
+          description: 'Email and WhatsApp alerts are updated.',
+        });
+      }
+    } catch (error) {
+      if (!silent) {
+        toast({
+          title: 'Failed to save notification settings',
+          description: error instanceof Error ? error.message : 'Please try again.',
+          variant: 'destructive',
+        });
+      } else {
+        console.error('Auto-save notification settings failed:', error);
+      }
+    } finally {
+      setSavingNotificationSettings(false);
+    }
+  }, [notificationSettings, toast]);
+
+  const saveCalendarSettings = useCallback(async (options: { silent?: boolean } = {}) => {
+    const { silent = false } = options;
+    try {
+      setSavingCalendarSettings(true);
+      const response = await userApi.updateCalendarSettings(calendarSettings);
+
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to save calendar settings');
+      }
+
+      if (!silent) {
+        toast({
+          title: 'Calendar settings saved',
+          description: 'Daily calendar activity sync is configured.',
+        });
+      }
+    } catch (error) {
+      if (!silent) {
+        toast({
+          title: 'Failed to save calendar settings',
+          description: error instanceof Error ? error.message : 'Please try again.',
+          variant: 'destructive',
+        });
+      } else {
+        console.error('Auto-save calendar settings failed:', error);
+      }
+    } finally {
+      setSavingCalendarSettings(false);
+    }
+  }, [calendarSettings, toast]);
+
+  useEffect(() => {
+    if (!isAuthenticated || settingsLoading) return;
+
+    if (!notificationHydratedRef.current) {
+      notificationHydratedRef.current = true;
+      return;
+    }
+
+    if (notificationAutoSaveTimerRef.current) {
+      clearTimeout(notificationAutoSaveTimerRef.current);
+    }
+
+    notificationAutoSaveTimerRef.current = setTimeout(() => {
+      saveNotificationSettings({ silent: true });
+    }, 700);
+
+    return () => {
+      if (notificationAutoSaveTimerRef.current) {
+        clearTimeout(notificationAutoSaveTimerRef.current);
+      }
+    };
+  }, [notificationSettings, isAuthenticated, settingsLoading, saveNotificationSettings]);
+
+  useEffect(() => {
+    if (!isAuthenticated || settingsLoading) return;
+
+    if (!calendarHydratedRef.current) {
+      calendarHydratedRef.current = true;
+      return;
+    }
+
+    if (calendarAutoSaveTimerRef.current) {
+      clearTimeout(calendarAutoSaveTimerRef.current);
+    }
+
+    calendarAutoSaveTimerRef.current = setTimeout(() => {
+      saveCalendarSettings({ silent: true });
+    }, 700);
+
+    return () => {
+      if (calendarAutoSaveTimerRef.current) {
+        clearTimeout(calendarAutoSaveTimerRef.current);
+      }
+    };
+  }, [calendarSettings, isAuthenticated, settingsLoading, saveCalendarSettings]);
 
   const addEnvVar = () => {
     setEnvVars((prev) => [
@@ -539,7 +691,13 @@ const Dashboard = () => {
     }
   };
 
-  const handleSubscribe = async (planId: string, isEnterprise: boolean) => {
+  const handleSubscribe = async (planId: string, isFree: boolean, isEnterprise: boolean) => {
+    if (isFree) {
+      setShowPaymentModal(false);
+      navigate('/dashboard');
+      return;
+    }
+
     if (isEnterprise) {
       // Redirect to WhatsApp for enterprise plan
       const phoneNumber = "918789601387";
@@ -1597,57 +1755,211 @@ const Dashboard = () => {
                       </div>
                     </div>
 
-                    {/* Email Preferences Section */}
+                    {/* Alert Preferences Section */}
                     <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-6">
                       <div className="flex items-center gap-2 mb-4">
                         <Settings size={20} className="text-primary" />
-                        <h2 className="font-heading text-base font-semibold">Email Preferences</h2>
+                        <h2 className="font-heading text-base font-semibold">Alert Preferences</h2>
                       </div>
                       
                       <div className="space-y-4">
                         <div className="flex items-center justify-between py-3 border-b border-border">
                           <div>
-                            <p className="text-sm font-medium">Log Monitoring Emails</p>
+                            <p className="text-sm font-medium">Critical Alert Emails</p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              Receive email alerts for errors and critical issues
+                              Receive critical attack and deployment alerts on email.
                             </p>
                           </div>
                           <Switch
-                            checked={emailMonitoring}
+                            checked={notificationSettings.alert_email_enabled}
                             onCheckedChange={(checked) => {
-                              setEmailMonitoring(checked);
-                              localStorage.setItem('emailMonitoring', checked.toString());
-                              toast({
-                                title: checked ? "Email Monitoring Enabled" : "Email Monitoring Disabled",
-                                description: checked 
-                                  ? "You'll receive email alerts for deployment issues" 
-                                  : "Email alerts have been disabled",
-                              });
+                              setNotificationSettings((prev) => ({
+                                ...prev,
+                                alert_email_enabled: checked,
+                              }));
                             }}
+                          />
+                        </div>
+
+                        <div className="py-3 border-b border-border">
+                          <div>
+                            <p className="text-sm font-medium mb-2">Alert Email Address</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Leave empty to use your account email.
+                            </p>
+                          </div>
+                          <Input
+                            className="mt-2"
+                            placeholder="alerts@example.com"
+                            value={notificationSettings.alert_email}
+                            onChange={(e) =>
+                              setNotificationSettings((prev) => ({
+                                ...prev,
+                                alert_email: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between py-3 border-b border-border">
+                          <div>
+                            <p className="text-sm font-medium">WhatsApp Alerts (Twilio)</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Send critical alerts to WhatsApp using Twilio.
+                            </p>
+                          </div>
+                          <Switch
+                            checked={notificationSettings.alert_whatsapp_enabled}
+                            onCheckedChange={(checked) => {
+                              setNotificationSettings((prev) => ({
+                                ...prev,
+                                alert_whatsapp_enabled: checked,
+                              }));
+                            }}
+                          />
+                        </div>
+
+                        <div className="py-3 border-b border-border">
+                          <p className="text-sm font-medium mb-2">WhatsApp Number</p>
+                          <p className="text-xs text-muted-foreground mb-2">
+                            Use E.164 format, for example +919876543210
+                          </p>
+                          <Input
+                            placeholder="+919876543210"
+                            value={notificationSettings.alert_whatsapp_number}
+                            onChange={(e) =>
+                              setNotificationSettings((prev) => ({
+                                ...prev,
+                                alert_whatsapp_number: e.target.value,
+                              }))
+                            }
                           />
                         </div>
 
                         <div className="flex items-center justify-between py-3">
                           <div>
-                            <p className="text-sm font-medium">Newsletter</p>
+                            <p className="text-sm font-medium">Critical Only</p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              Get updates about new features and tips
+                              Only send alerts for critical events.
                             </p>
                           </div>
                           <Switch
-                            checked={newsletter}
+                            checked={notificationSettings.critical_only}
                             onCheckedChange={(checked) => {
-                              setNewsletter(checked);
-                              localStorage.setItem('newsletter', checked.toString());
-                              toast({
-                                title: checked ? "Newsletter Subscribed" : "Newsletter Unsubscribed",
-                                description: checked 
-                                  ? "You'll receive our newsletter with updates" 
-                                  : "You've unsubscribed from the newsletter",
-                              });
+                              setNotificationSettings((prev) => ({
+                                ...prev,
+                                critical_only: checked,
+                              }));
                             }}
                           />
                         </div>
+
+                        <button
+                          onClick={saveNotificationSettings}
+                          disabled={settingsLoading || savingNotificationSettings}
+                          className="w-full mt-4 py-2.5 px-4 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm"
+                        >
+                          {savingNotificationSettings ? <Loader2 size={16} className="animate-spin" /> : <Settings size={16} />}
+                          Save Alert Settings
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Calendar Integration Section */}
+                    <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Activity size={20} className="text-primary" />
+                        <h2 className="font-heading text-base font-semibold">Google Calendar Daily Activity</h2>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between py-3 border-b border-border">
+                          <div>
+                            <p className="text-sm font-medium">Enable Daily Calendar Event</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              n8n creates daily activity summary event in your Google Calendar.
+                            </p>
+                          </div>
+                          <Switch
+                            checked={calendarSettings.enabled}
+                            onCheckedChange={(checked) => {
+                              setCalendarSettings((prev) => ({
+                                ...prev,
+                                enabled: checked,
+                              }));
+                            }}
+                          />
+                        </div>
+
+                        <div className="py-3 border-b border-border">
+                          <p className="text-sm font-medium mb-2">Google Calendar ID</p>
+                          <Input
+                            placeholder="primary"
+                            value={calendarSettings.calendar_id}
+                            onChange={(e) =>
+                              setCalendarSettings((prev) => ({
+                                ...prev,
+                                calendar_id: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+
+                        <div className="py-3 border-b border-border">
+                          <p className="text-sm font-medium mb-2">Timezone</p>
+                          <Input
+                            placeholder="Asia/Kolkata"
+                            value={calendarSettings.timezone}
+                            onChange={(e) =>
+                              setCalendarSettings((prev) => ({
+                                ...prev,
+                                timezone: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 py-3">
+                          <div>
+                            <p className="text-sm font-medium mb-2">Daily Hour (0-23)</p>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={23}
+                              value={calendarSettings.daily_hour}
+                              onChange={(e) =>
+                                setCalendarSettings((prev) => ({
+                                  ...prev,
+                                  daily_hour: Number(e.target.value || 0),
+                                }))
+                              }
+                            />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium mb-2">Daily Minute (0-59)</p>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={59}
+                              value={calendarSettings.daily_minute}
+                              onChange={(e) =>
+                                setCalendarSettings((prev) => ({
+                                  ...prev,
+                                  daily_minute: Number(e.target.value || 0),
+                                }))
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={saveCalendarSettings}
+                          disabled={settingsLoading || savingCalendarSettings}
+                          className="w-full mt-4 py-2.5 px-4 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm"
+                        >
+                          {savingCalendarSettings ? <Loader2 size={16} className="animate-spin" /> : <Activity size={16} />}
+                          Save Calendar Settings
+                        </button>
                       </div>
                     </div>
 
@@ -1744,7 +2056,44 @@ const Dashboard = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 py-4">
+            {/* Demo Plan */}
+            <div className="border border-border rounded-lg p-6 hover:border-primary/50 transition-all">
+              <h3 className="font-heading text-base font-bold mb-2">Demo</h3>
+              <div className="mb-4">
+                <span className="text-2xl font-bold">₹0</span>
+                <span className="text-muted-foreground">/demo</span>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Continue with the demo plan at no cost.
+              </p>
+              <ul className="space-y-2 mb-6 text-sm">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-primary" />
+                  1 Frontend deployment
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-primary" />
+                  1 Backend deployment
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-primary" />
+                  Automatic SSL
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-primary" />
+                  Community support
+                </li>
+              </ul>
+              <button
+                onClick={() => handleSubscribe("free", true, false)}
+                className="w-full py-2.5 rounded-lg border border-border text-foreground hover:border-primary/50 transition-all flex items-center justify-center gap-2"
+              >
+                Continue on Dashboard
+                <ArrowRight size={16} />
+              </button>
+            </div>
+
             {/* Starter Plan */}
             <div className="border border-border rounded-lg p-6 hover:border-primary/50 transition-all">
               <h3 className="font-heading text-base font-bold mb-2">Starter</h3>
@@ -1774,7 +2123,7 @@ const Dashboard = () => {
                 </li>
               </ul>
               <button
-                onClick={() => handleSubscribe("starter", false)}
+                onClick={() => handleSubscribe("starter", false, false)}
                 disabled={paymentLoading === "starter"}
                 className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
@@ -1815,7 +2164,7 @@ const Dashboard = () => {
                 </li>
               </ul>
               <button
-                onClick={() => handleSubscribe("growth", false)}
+                onClick={() => handleSubscribe("growth", false, false)}
                 disabled={paymentLoading === "growth"}
                 className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
@@ -1853,7 +2202,7 @@ const Dashboard = () => {
                 </li>
               </ul>
               <button
-                onClick={() => handleSubscribe("business", false)}
+                onClick={() => handleSubscribe("business", false, false)}
                 disabled={paymentLoading === "business"}
                 className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >

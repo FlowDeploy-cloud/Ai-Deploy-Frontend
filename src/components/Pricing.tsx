@@ -5,6 +5,23 @@ import { getToken } from "@/lib/api";
 
 const plans = [
   {
+    id: "free",
+    name: "Demo",
+    price: "₹0",
+    period: "/demo",
+    description: "Try the platform with a zero-cost demo plan.",
+    features: [
+      "1 Frontend deployment",
+      "1 Backend deployment",
+      "Automatic SSL",
+      "Community support",
+      "Basic deployment logs",
+    ],
+    cta: "Try Demo",
+    highlight: false,
+    isFree: true,
+  },
+  {
     id: "starter",
     name: "Starter",
     price: "₹99",
@@ -82,7 +99,12 @@ const plans = [
 const Pricing = () => {
   const [loading, setLoading] = useState<string | null>(null);
 
-  const handleSubscribe = async (planId: string, isEnterprise: boolean) => {
+  const handleSubscribe = async (planId: string, isFree: boolean, isEnterprise: boolean) => {
+    if (isFree) {
+      window.location.href = "/signup";
+      return;
+    }
+
     if (isEnterprise) {
       // Redirect to WhatsApp for enterprise plan
       const phoneNumber = "918789601387";
@@ -201,7 +223,7 @@ const Pricing = () => {
             Choose the perfect plan for your deployment needs.
           </p>
         </motion.div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-7xl mx-auto items-start">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 max-w-7xl mx-auto items-start">
           {plans.map((plan, i) => (
             <motion.div
               key={plan.name}
@@ -230,7 +252,7 @@ const Pricing = () => {
               <p className="font-body text-[10px] text-muted-foreground mb-5 sm:mb-6">{plan.description}</p>
 
               <button
-                onClick={() => handleSubscribe(plan.id, plan.isEnterprise || false)}
+                onClick={() => handleSubscribe(plan.id, plan.isFree || false, plan.isEnterprise || false)}
                 disabled={loading === plan.id}
                 className={`flex items-center justify-center gap-2 w-full py-2 sm:py-2.5 rounded-lg font-body text-[10px] sm:text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                   plan.highlight
